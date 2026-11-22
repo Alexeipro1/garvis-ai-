@@ -1,4 +1,4 @@
-import type { AssistantProvider, AssistantReply } from './assistant';
+import type { AssistantProvider, AssistantReply, ChatTurn } from './assistant';
 import { formatDate, formatTime, TIME_ZONE } from './time';
 
 /**
@@ -23,7 +23,8 @@ export class DemoAssistant implements AssistantProvider {
   readonly label = 'Демо (локально, без AI)';
   readonly isReal = false;
 
-  async reply(input: string): Promise<AssistantReply> {
+  async reply(turns: ChatTurn[]): Promise<AssistantReply> {
+    const input = [...turns].reverse().find((t) => t.role === 'user')?.content ?? '';
     await new Promise((r) => setTimeout(r, 700)); // имитация «раздумья» для анимации
     const rule = rules.find((r) => r.match.test(input));
     const text = rule

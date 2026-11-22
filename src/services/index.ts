@@ -1,9 +1,14 @@
 import { DemoAssistant } from './demoAssistant';
+import { RemoteAssistant, type RemoteConfig } from './remoteAssistant';
+import type { AssistantProvider } from './assistant';
 import { WebSpeechVoiceInput } from './voice';
 import { WebSpeechOutput } from './speech';
 
-// Здесь заменяются реализации при подключении настоящих сервисов.
-export const assistant = new DemoAssistant();
+const demo = new DemoAssistant();
+/** Если сервер-посредник настроен — настоящая модель, иначе демо-ответы */
+export const getAssistant = (cfg: RemoteConfig | null): AssistantProvider =>
+  cfg ? new RemoteAssistant(cfg) : demo;
+
 export const voice = new WebSpeechVoiceInput();
 export const speech = new WebSpeechOutput();
 

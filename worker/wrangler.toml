@@ -1,0 +1,30 @@
+# J.A.R.V.I.S. API — защищённый посредник между PWA и Anthropic Claude API.
+# Секреты (НЕ хранятся в этом файле, задаются в панели Cloudflare):
+#   ANTHROPIC_API_KEY — ключ Anthropic
+#   ACCESS_KEY        — ваш личный ключ доступа (длинная случайная строка, 32+ символов)
+name = "jarvis-api"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+MODEL = "claude-haiku-5-5"
+DAILY_LIMIT = "200"
+ALLOWED_ORIGIN = "https://alexeipro1.github.io"
+
+# Не более 10 запросов в минуту с одного адреса (приблизительный, по дата-центрам)
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+# Суточный счётчик запросов (Durable Object на SQLite — доступно на бесплатном плане)
+[[durable_objects.bindings]]
+name = "USAGE"
+class_name = "DailyCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DailyCounter"]
