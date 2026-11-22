@@ -1,4 +1,4 @@
-import { assistant, voice } from '../services';
+import { assistant, voice, speech, isStandalone } from '../services';
 import { TIME_ZONE } from '../services/time';
 
 const rows: [string, string, boolean][] = [
@@ -6,6 +6,9 @@ const rows: [string, string, boolean][] = [
   ['Ассистент', assistant.label, false],
   ['Настоящая AI-модель', 'не подключена', false],
   ['Голосовой ввод', voice.available ? 'доступен (ru-RU, средствами браузера)' : 'не поддерживается этим браузером', voice.available],
+  ['Озвучивание ответов', !speech.available ? 'не поддерживается' : speech.hasRussianVoice === false ? 'доступно, но русский голос не найден' : 'доступно (ru-RU)', speech.available && speech.hasRussianVoice !== false],
+  ['Режим запуска', isStandalone() ? 'приложение с экрана «Домой»' : 'вкладка браузера', true],
+  ['Защищённое соединение (HTTPS)', window.isSecureContext ? 'да' : 'нет — микрофон не будет работать', window.isSecureContext],
   ['Apple Shortcuts', 'подготовлено в коде, не включено', false],
   ['Погода / календарь / напоминания', 'заглушки', false],
 ];

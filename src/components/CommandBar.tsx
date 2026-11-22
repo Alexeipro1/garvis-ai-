@@ -1,17 +1,19 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type RefObject } from 'react';
 import type { CoreState } from '../types';
 
 interface Props {
   state: CoreState;
   /** Текст, распознаваемый голосом в реальном времени */
   interim: string;
+  inputRef?: RefObject<HTMLInputElement | null>;
   onSend: (text: string) => void;
   onMic: () => void;
 }
 
-export function CommandBar({ state, interim, onSend, onMic }: Props) {
+export function CommandBar({ state, interim, inputRef, onSend, onMic }: Props) {
   const [text, setText] = useState('');
-  const busy = state === 'thinking' || state === 'speaking';
+  const busy = state === 'thinking';
+  const stopMode = state === 'listening' || state === 'speaking';
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -25,16 +27,21 @@ export function CommandBar({ state, interim, onSend, onMic }: Props) {
     <form className="cmdbar" onSubmit={submit}>
       <button
         type="button"
-        className={`mic ${state === 'listening' ? 'mic--on' : ''}`}
+        className={`mic ${stopMode ? 'mic--on' : ''}`}
         onClick={onMic}
-        aria-label="Микрофон"
+        aria-label={state === 'listening' ? 'Остановить запись' : state === 'speaking' ? 'Остановить озвучивание' : 'Говорить (микрофон)'}
       >
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <rect x="9" y="3" width="6" height="11" rx="3" />
-          <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-        </svg>
+        {stopMode ? (
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5" /></svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+          </svg>
+        )}
       </button>
       <input
+        ref={inputRef}
         value={state === 'listening' ? interim : text}
         readOnly={state === 'listening'}
         onChange={(e) => setText(e.target.value)}

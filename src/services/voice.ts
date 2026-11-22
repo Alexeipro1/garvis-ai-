@@ -63,6 +63,7 @@ const ERRORS: Record<string, VoiceErrorCode> = {
 
 export class WebSpeechVoiceInput implements VoiceInput {
   private rec: SRInstance | null = null;
+  private stopped = false;
 
   get available() {
     return getCtor() !== undefined;
@@ -77,6 +78,7 @@ export class WebSpeechVoiceInput implements VoiceInput {
     }
     const rec = new Ctor();
     this.rec = rec;
+    this.stopped = false;
     rec.lang = 'ru-RU';
     rec.continuous = false;
     rec.interimResults = true;
@@ -101,7 +103,7 @@ export class WebSpeechVoiceInput implements VoiceInput {
       this.rec = null;
       const text = finalText.trim();
       if (text) cb.onFinal(text);
-      else if (!failed) cb.onError('no-speech');
+      else if (!failed && !this.stopped) cb.onError('no-speech');
       cb.onEnd();
     };
     try {
@@ -113,7 +115,9 @@ export class WebSpeechVoiceInput implements VoiceInput {
     }
   }
 
+  /** Остановить запись; уже распознанное будет передано в onFinal */
   stop() {
+    this.stopped = true;
     this.rec?.stop();
   }
 }

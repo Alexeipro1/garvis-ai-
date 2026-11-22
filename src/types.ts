@@ -1,4 +1,4 @@
-export type CoreState = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type CoreState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'error';
 export type View = 'home' | 'chat' | 'panels' | 'about';
 
 export interface Message {

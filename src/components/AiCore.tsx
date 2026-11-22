@@ -5,6 +5,7 @@ const LABELS: Record<CoreState, string> = {
   listening: 'Слушаю…',
   thinking: 'Думаю…',
   speaking: 'Отвечаю…',
+  error: 'Ошибка',
 };
 
 export function AiCore({ state }: { state: CoreState }) {
