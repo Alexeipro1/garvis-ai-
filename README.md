@@ -16,7 +16,7 @@ npm run preview   # просмотр собранной версии (порт 4
 ## Архитектура
 - `src/services/assistant.ts` — интерфейс `AssistantProvider`: сюда подключается настоящая модель (через ВАШ сервер; ключи не хранить во фронтенде).
 - `src/services/demoAssistant.ts` — текущий локальный демо-провайдер.
-- `src/services/voice.ts` — интерфейс `VoiceInput` (сейчас заглушка; позже Web Speech API).
+- `src/services/voice.ts` — голосовой ввод через Web Speech API (ru-RU), средствами браузера/iOS. В режиме PWA на экране «Домой» на iPhone может не работать (ограничение iOS) — тогда открывайте сайт во вкладке Safari.
 - `src/services/shortcuts.ts` — помощник для Apple Shortcuts (`shortcuts://run-shortcut`), пока не используется.
 - `src/services/time.ts` — время/дата в часовом поясе `Asia/Jerusalem`.
 - `src/services/index.ts` — единая точка замены реализаций.

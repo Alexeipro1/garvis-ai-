@@ -5,7 +5,7 @@ const rows: [string, string, boolean][] = [
   ['Часовой пояс', TIME_ZONE, true],
   ['Ассистент', assistant.label, false],
   ['Настоящая AI-модель', 'не подключена', false],
-  ['Голосовой ввод', voice.available ? 'доступен' : 'не подключён', voice.available],
+  ['Голосовой ввод', voice.available ? 'доступен (ru-RU, средствами браузера)' : 'не поддерживается этим браузером', voice.available],
   ['Apple Shortcuts', 'подготовлено в коде, не включено', false],
   ['Погода / календарь / напоминания', 'заглушки', false],
 ];

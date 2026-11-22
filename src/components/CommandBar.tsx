@@ -3,11 +3,13 @@ import type { CoreState } from '../types';
 
 interface Props {
   state: CoreState;
+  /** Текст, распознаваемый голосом в реальном времени */
+  interim: string;
   onSend: (text: string) => void;
   onMic: () => void;
 }
 
-export function CommandBar({ state, onSend, onMic }: Props) {
+export function CommandBar({ state, interim, onSend, onMic }: Props) {
   const [text, setText] = useState('');
   const busy = state === 'thinking' || state === 'speaking';
 
@@ -33,9 +35,10 @@ export function CommandBar({ state, onSend, onMic }: Props) {
         </svg>
       </button>
       <input
-        value={text}
+        value={state === 'listening' ? interim : text}
+        readOnly={state === 'listening'}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Введите команду…"
+        placeholder={state === 'listening' ? 'Говорите…' : 'Введите команду…'}
         enterKeyHint="send"
         autoComplete="off"
         aria-label="Текстовая команда"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CoreState, Message, View } from './types';
 import { assistant, voice } from './services';
+import { VOICE_MESSAGES } from './services/voice';
 import { formatDate, formatTime, greetingFor, TIME_ZONE } from './services/time';
 import { useNow } from './hooks/useNow';
 import { AiCore, stateLabel } from './components/AiCore';
@@ -13,6 +14,7 @@ import { About } from './components/About';
 export default function App() {
   const [view, setView] = useState<View>('home');
   const [state, setState] = useState<CoreState>('idle');
+  const [interim, setInterim] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const nextId = useRef(1);
   const timers = useRef<number[]>([]);
@@ -40,17 +42,20 @@ export default function App() {
   }, [push]);
 
   const onMic = () => {
-    if (state === 'listening') { voice.stop(); setState('idle'); return; }
+    if (state === 'listening') { voice.stop(); return; }
     if (state !== 'idle') return;
     if (!voice.available) {
-      // Честно: голос не подключён, показываем только визуальное состояние.
-      push('assistant', 'Голосовой ввод ещё не подключён — анимация «слушаю» только демонстрационная.', 'system');
-      setState('listening');
-      later(() => setState((s) => (s === 'listening' ? 'idle' : s)), 3000);
+      push('assistant', VOICE_MESSAGES.unsupported, 'system');
       return;
     }
+    setInterim('');
     setState('listening');
-    voice.start((t) => send(t), () => setState('idle'));
+    voice.start({
+      onInterim: setInterim,
+      onFinal: (t) => { setInterim(''); void send(t); },
+      onError: (code) => push('assistant', VOICE_MESSAGES[code], 'system'),
+      onEnd: () => { setInterim(''); setState((s) => (s === 'listening' ? 'idle' : s)); },
+    });
   };
 
   const goChatAndSend = (t: string) => { setView('chat'); void send(t); };
@@ -87,7 +92,7 @@ export default function App() {
         {view === 'about' && <About />}
       </main>
 
-      {(view === 'home' || view === 'chat') && <CommandBar state={state} onSend={send} onMic={onMic} />}
+      {(view === 'home' || view === 'chat') && <CommandBar state={state} interim={interim} onSend={send} onMic={onMic} />}
       <BottomNav view={view} onChange={setView} />
     </div>
   );
