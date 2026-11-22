@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { assistant, voice, speech, isStandalone } from '../services';
 import { TIME_ZONE } from '../services/time';
 
-const rows: [string, string, boolean][] = [
+const buildRows = (): [string, string, boolean][] => [
   ['Часовой пояс', TIME_ZONE, true],
   ['Ассистент', assistant.label, false],
   ['Настоящая AI-модель', 'не подключена', false],
   ['Голосовой ввод', voice.available ? 'доступен (ru-RU, средствами браузера)' : 'не поддерживается этим браузером', voice.available],
+  ['Русский голос', speech.voiceName ?? 'не найден', speech.voiceName !== null],
   ['Озвучивание ответов', !speech.available ? 'не поддерживается' : speech.hasRussianVoice === false ? 'доступно, но русский голос не найден' : 'доступно (ru-RU)', speech.available && speech.hasRussianVoice !== false],
   ['Режим запуска', isStandalone() ? 'приложение с экрана «Домой»' : 'вкладка браузера', true],
   ['Защищённое соединение (HTTPS)', window.isSecureContext ? 'да' : 'нет — микрофон не будет работать', window.isSecureContext],
@@ -14,6 +16,18 @@ const rows: [string, string, boolean][] = [
 ];
 
 export function About() {
+  const rows = buildRows();
+  const [test, setTest] = useState('');
+  const runTest = () => {
+    if (!speech.available) { setTest('Озвучивание не поддерживается этим браузером.'); return; }
+    speech.unlock();
+    setTest('Запускаю…');
+    speech.speak('Здравствуйте, Алексей. Голос работает.', {
+      onStart: () => setTest('Звучит. Если вы ничего не слышите — выключите беззвучный режим и добавьте громкость.'),
+      onEnd: () => setTest('Готово: воспроизведение завершено.'),
+      onError: (c) => setTest(c === 'silent' ? 'Звук не воспроизведён: проверьте беззвучный режим и громкость.' : c === 'blocked' ? 'Браузер заблокировал звук.' : 'Ошибка озвучивания.'),
+    });
+  };
   return (
     <div className="panels">
       <section className="card">
@@ -23,6 +37,11 @@ export function About() {
             <li key={k}><span>{k}</span><b className={ok ? 'ok' : 'off'}>{v}</b></li>
           ))}
         </ul>
+      </section>
+      <section className="card">
+        <header className="card__head"><h3>Проверка голоса</h3></header>
+        <button type="button" className="chip" onClick={runTest}>Проверить озвучивание</button>
+        {test && <p className="muted" role="status">{test}</p>}
       </section>
       <section className="card">
         <header className="card__head"><h3>О проекте</h3></header>
