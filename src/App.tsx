@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CoreState, Message, View } from './types';
-import { assistant, voice, speech, isStandalone } from './services';
+import { getAssistant, voice, speech, isStandalone } from './services';
+import { ChatError, type ChatTurn } from './services/assistant';
+import { loadHistory, loadRemote, saveHistory, saveRemote } from './services/settings';
+import type { RemoteConfig } from './services/remoteAssistant';
 import { VOICE_MESSAGES, type VoiceErrorCode } from './services/voice';
 import { SPEECH_MESSAGES, prepareForSpeech } from './services/speech';
 import { formatDate, formatTime, greetingFor, TIME_ZONE } from './services/time';
@@ -20,15 +23,32 @@ const savePref = (v: boolean) => {
   try { localStorage.setItem(PREF_KEY, v ? '1' : '0'); } catch { /* ignore */ }
 };
 
+/** Контекст для модели: реплики пользователя и настоящие ответы; демо-ответы обрывают контекст, ошибки пропускаются */
+function toTurns(messages: Message[]): ChatTurn[] {
+  const turns: ChatTurn[] = [];
+  for (const m of messages) {
+    if (m.role === 'user') turns.push({ role: 'user', content: m.text });
+    else if (m.source === 'ai') turns.push({ role: 'assistant', content: m.text });
+    else if (m.source === 'demo') turns.length = 0;
+  }
+  return turns.slice(-20);
+}
+
 const PWA_HINT = ' Вы открыли приложение с экрана «Домой»: iOS в таком режиме часто ограничивает микрофон. Откройте сайт во вкладке Safari.';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
   const [state, setStateRaw] = useState<CoreState>('idle');
   const [interim, setInterim] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [initial] = useState(loadHistory);
+  const [messages, setMessages] = useState<Message[]>(initial);
+  const [cfg, setCfg] = useState<RemoteConfig | null>(loadRemote);
+  const [retryText, setRetryText] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
   const [speakOn, setSpeakOn] = useState(loadPref);
-  const nextId = useRef(1);
+  const messagesRef = useRef<Message[]>(initial);
+  const cfgRef = useRef(cfg);
+  const nextId = useRef(initial.reduce((n, m) => Math.max(n, m.id), 0) + 1);
   const stateRef = useRef<CoreState>('idle');
   const timer = useRef<number>(0);
   const speakRef = useRef(speakOn);
@@ -40,8 +60,21 @@ export default function App() {
   const later = (fn: () => void, ms: number) => { clearTimer(); timer.current = window.setTimeout(fn, ms); };
 
   const push = useCallback((role: Message['role'], text: string, source?: Message['source']) => {
-    setMessages((m) => [...m, { id: nextId.current++, role, text, source }]);
+    messagesRef.current = [...messagesRef.current, { id: nextId.current++, role, text, source }];
+    setMessages(messagesRef.current);
   }, []);
+
+  useEffect(() => { saveHistory(messages); }, [messages]);
+  useEffect(() => { cfgRef.current = cfg; saveRemote(cfg); }, [cfg]);
+
+  const clearHistory = () => { messagesRef.current = []; setMessages([]); setRetryText(null); };
+
+  // Если ответ идёт дольше обычного — показываем это в статусе
+  useEffect(() => {
+    if (state !== 'thinking') { setSlow(false); return; }
+    const t = window.setTimeout(() => setSlow(true), 7000);
+    return () => window.clearTimeout(t);
+  }, [state]);
 
   /** Состояние «ошибка»: понятное сообщение + красная индикация, затем возврат в ожидание */
   const fail = useCallback((text: string) => {
@@ -52,16 +85,17 @@ export default function App() {
     timer.current = window.setTimeout(() => setState('idle'), 3500);
   }, [push, setState]);
 
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, isRetry = false) => {
     if (stateRef.current === 'thinking') return;
     // Вызывается из обработчика тапа — здесь «разблокируем» озвучивание для iOS
     speech.unlock();
     speech.cancel();
     clearTimer();
-    push('user', text);
+    setRetryText(null);
+    if (!isRetry) push('user', text);
     setState('thinking');
     try {
-      const r = await assistant.reply(text);
+      const r = await getAssistant(cfgRef.current).reply(toTurns(messagesRef.current));
       push('assistant', r.text, r.isReal ? 'ai' : 'demo');
       setState('speaking');
       if (speakRef.current && speech.available) {
@@ -73,8 +107,9 @@ export default function App() {
         // Озвучивание выключено: короткая визуальная индикация ответа
         later(() => setState('idle'), Math.min(4000, 1200 + r.text.length * 25));
       }
-    } catch {
-      fail('Не удалось получить ответ.');
+    } catch (e) {
+      if (e instanceof ChatError && e.retryable) setRetryText(text);
+      fail(e instanceof ChatError ? e.message : 'Не удалось получить ответ.');
     }
   }, [push, fail, setState]);
 
@@ -167,7 +202,7 @@ export default function App() {
             <p className="greet">{greetingFor(now)}</p>
             <h1 className="welcome">Добро пожаловать, Алексей</h1>
             <AiCore state={state} />
-            <div className={`status-pill status-pill--${state}`}>{stateLabel(state)}</div>
+            <div className={`status-pill status-pill--${state}`}>{stateLabel(state)}{slow ? ' · дольше обычного' : ''}</div>
             <div className="clock">{formatTime(now)}</div>
             <div className="date">{formatDate(now)}</div>
             {lastReply && (
@@ -176,12 +211,13 @@ export default function App() {
                 {lastReply.text}
               </div>
             )}
+            {retryText && <button type="button" className="chip chip--retry" onClick={() => void send(retryText, true)}>Повторить</button>}
             <Panels compact onCommand={goChatAndSend} />
           </div>
         )}
-        {view === 'chat' && <Chat messages={messages} />}
+        {view === 'chat' && <Chat messages={messages} retryText={retryText} onRetry={(t) => void send(t, true)} onClear={clearHistory} />}
         {view === 'panels' && <Panels onCommand={goChatAndSend} />}
-        {view === 'about' && <About />}
+        {view === 'about' && <About cfg={cfg} onCfg={setCfg} onClearHistory={clearHistory} historyCount={messages.length} />}
       </main>
 
       {(view === 'home' || view === 'chat') && <CommandBar state={state} interim={interim} inputRef={inputRef} onSend={send} onMic={onMic} />}

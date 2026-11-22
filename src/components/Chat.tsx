@@ -3,9 +3,16 @@ import type { Message } from '../types';
 
 const SRC_LABEL = { demo: 'ДЕМО-ОТВЕТ', ai: 'AI', system: 'СИСТЕМА' } as const;
 
-export function Chat({ messages }: { messages: Message[] }) {
+interface Props {
+  messages: Message[];
+  retryText: string | null;
+  onRetry: (t: string) => void;
+  onClear: () => void;
+}
+
+export function Chat({ messages, retryText, onRetry, onClear }: Props) {
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, retryText]);
 
   if (messages.length === 0) {
     return <p className="muted center">Напишите команду, например «помощь».</p>;
@@ -18,6 +25,8 @@ export function Chat({ messages }: { messages: Message[] }) {
           {m.text}
         </div>
       ))}
+      {retryText && <button type="button" className="chip chip--retry" onClick={() => onRetry(retryText)}>Повторить</button>}
+      <button type="button" className="link-btn" onClick={onClear}>Очистить историю</button>
       <div ref={end} />
     </div>
   );

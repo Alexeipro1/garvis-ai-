@@ -102,6 +102,17 @@ button { font: inherit; color: inherit; }
 .bubble--user { align-self: flex-end; background: linear-gradient(135deg, #0b5d99, #0e7ab8); border-bottom-right-radius: 6px; }
 .bubble--assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
 
+/* ---------- Retry / settings ---------- */
+.chip.chip--retry { align-self: center; border-color: var(--err); color: var(--err); background: rgba(255, 93, 108, .08); }
+.link-btn { align-self: center; margin-top: 8px; padding: 10px 14px; min-height: 44px; background: none; border: 0; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+.field input { height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(4, 16, 38, .85); color: var(--text); font-size: 16px; outline: 0; }
+.field input:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(56, 214, 255, .3); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip.chip--primary { background: var(--cyan); color: #02213d; border-color: var(--cyan); font-weight: 600; }
+.chip:disabled { opacity: .5; }
+.note--ok { color: #5dffa8; } .note--err { color: var(--err); }
+
 /* ---------- Panels ---------- */
 .panels { display: flex; flex-direction: column; gap: 12px; width: 100%; text-align: left; }
 .card { padding: 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); backdrop-filter: blur(10px); box-shadow: 0 0 20px rgba(56, 214, 255, .06) inset; }
